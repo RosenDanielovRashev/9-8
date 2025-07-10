@@ -6,8 +6,7 @@ from scipy.interpolate import interp1d
 
 # Зареждане на данните
 Fi_data = pd.read_csv('Fi.csv')
-# Преименуване на колоните за съвместимост
-Fi_data.columns = ['y', 'x', 'Fi']
+Fi_data.columns = ['y', 'x', 'Fi']  # Осигуряваме съвместимост на имената на колоните
 
 H_data = pd.read_csv('H.csv')
 
@@ -41,10 +40,16 @@ for fi in fi_values_available:
 # Подготовка на данните за H
 h_values_available = sorted(H_data['H'].unique())
 h_to_x = {}
+h_to_y_range = {}  # Запазваме диапазона на y за всяко H
+
 for h in h_values_available:
-    # Вземаме първата x стойност за всяко H
-    x_val = H_data[H_data['H'] == h]['x'].iloc[0]
+    # Изчисляваме средната x стойност за всяко H
+    h_group = H_data[H_data['H'] == h]
+    x_val = h_group['x'].mean()
     h_to_x[h] = x_val
+    
+    # Запазваме диапазона на y за визуализация
+    h_to_y_range[h] = (h_group['y'].min(), h_group['y'].max())
 
 # Streamlit UI
 st.title('Номограма за активно напрежение на срязване τb')
@@ -63,7 +68,7 @@ f_fi = fi_interpolators[fi_value]
 y_tau = float(f_fi(x_h))
 
 # Визуализация
-fig, ax = plt.subplots(figsize=(10, 8))
+fig, ax = plt.subplots(figsize=(12, 9))
 
 # Намиране на глобални граници
 x_min = min(Fi_data['x'].min(), H_data['x'].min()) - 0.001
@@ -80,7 +85,7 @@ for fi_val in fi_values_available:
     if len(group) == 1:
         # Рисуване на хоризонтална линия за константни стойности
         if fi_val == fi_value:
-            ax.plot([x_min, x_max], [y_vals[0], y_vals[0]], 'b-', linewidth=3, label=f'Fi={fi_val} (избрана)')
+            ax.plot([x_min, x_max], [y_vals[0], y_vals[0]], 'b-', linewidth=2.5, label=f'Fi={fi_val} (избрана)')
         else:
             ax.plot([x_min, x_max], [y_vals[0], y_vals[0]], 'b-', linewidth=1, alpha=0.3)
     else:
@@ -90,19 +95,21 @@ for fi_val in fi_values_available:
         y_smooth = f(x_smooth)
         
         if fi_val == fi_value:
-            ax.plot(x_smooth, y_smooth, 'b-', linewidth=3, label=f'Fi={fi_val} (избрана)')
+            ax.plot(x_smooth, y_smooth, 'b-', linewidth=2.5, label=f'Fi={fi_val} (избрана)')
             # Маркиране на оригиналните точки
-            ax.scatter(x_vals, y_vals, color='blue', s=50, alpha=0.7)
+            ax.scatter(x_vals, y_vals, color='blue', s=40, alpha=0.7)
         else:
             ax.plot(x_smooth, y_smooth, 'b-', linewidth=1, alpha=0.3)
 
 # Рисуване на всички изолинии за H
 for h_val in h_values_available:
     x_h_line = h_to_x[h_val]
+    y_min_h, y_max_h = h_to_y_range[h_val]
+    
     if h_val == h_value:
-        ax.plot([x_h_line, x_h_line], [y_min, y_max], 'r-', linewidth=3, label=f'H={h_val} (избрана)')
+        ax.plot([x_h_line, x_h_line], [y_min_h, y_max_h], 'r-', linewidth=2.5, label=f'H={h_val} (избрана)')
     else:
-        ax.plot([x_h_line, x_h_line], [y_min, y_max], 'r-', linewidth=1, alpha=0.3)
+        ax.plot([x_h_line, x_h_line], [y_min_h, y_max_h], 'r-', linewidth=1, alpha=0.3)
 
 # Маркиране на пресечната точка
 ax.plot([x_h], [y_tau], 'ro', markersize=8, label=f'τb = {y_tau:.4f}')
@@ -138,3 +145,4 @@ st.subheader('Техническа информация')
 st.write(f"Обхват на данните: Fi = {min(fi_values_available)} до {max(fi_values_available)}, H = {min(h_values_available)} до {max(h_values_available)}")
 st.write(f"Брой уникални Fi стойности: {len(fi_values_available)}")
 st.write(f"Брой точки за Fi: {len(Fi_data)}")
+st.write(f"Брой точки за H: {len(H_data)}")
