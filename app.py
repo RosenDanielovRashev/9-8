@@ -190,7 +190,7 @@ for h_val in [closest_h_lower, closest_h_upper, h_value]:
         ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=2, alpha=0.7)
        
 # Маркиране на пресечната точка
-ax.plot([x_h], [y_tau], 'ko', markersize=8, label=f'τb = {y_tau:.4f}')
+ax.plot([x_h], [y_tau], 'ko', markersize=5)
 
 # Настройки на графиката
 ax.set_xlim(x_min, x_max)
