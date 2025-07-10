@@ -7,9 +7,9 @@ from scipy.interpolate import interp1d
 # Зареждане на данните
 @st.cache_data
 def load_data():
-    Fi_data = pd.read_csv('data/Fi.csv')
+    Fi_data = pd.read_csv('Fi.csv')
     Fi_data.columns = ['y', 'x', 'Fi']
-    H_data = pd.read_csv('data/H.csv')
+    H_data = pd.read_csv('H.csv')
     
     Fi_data['Fi'] = Fi_data['Fi'].astype(float)
     H_data['H'] = H_data['H'].astype(float)
