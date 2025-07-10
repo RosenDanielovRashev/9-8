@@ -7,9 +7,9 @@ from scipy.interpolate import interp1d
 # Зареждане на данните
 @st.cache_data
 def load_data():
-    Fi_data = pd.read_csv('Fi.csv')
+    Fi_data = pd.read_csv('data/Fi.csv')
     Fi_data.columns = ['y', 'x', 'Fi']
-    H_data = pd.read_csv('H.csv')
+    H_data = pd.read_csv('data/H.csv')
     
     Fi_data['Fi'] = Fi_data['Fi'].astype(float)
     H_data['H'] = H_data['H'].astype(float)
@@ -19,7 +19,7 @@ def load_data():
 
 Fi_data, H_data = load_data()
 
-# Подготовка на данните
+# Подготовка на данните за Fi
 fi_aggregated_groups = {}
 fi_interpolators = {}
 fi_values_available = sorted(Fi_data['Fi'].unique())
@@ -90,7 +90,7 @@ max_h = float(max(h_values_available))
 col1, col2 = st.columns(2)
 with col1:
     fi_value = st.number_input(
-        'Стойност за Fi', 
+        'Стойност за φ (Fi)', 
         min_value=min_fi, 
         max_value=max_fi, 
         value=min_fi, 
@@ -116,7 +116,7 @@ except ValueError:
     st.stop()
 
 if not (min_fi <= fi_value <= max_fi):
-    st.error(f"Стойността за Fi трябва да е между {min_fi} и {max_fi}")
+    st.error(f"Стойността за φ трябва да е между {min_fi} и {max_fi}")
     st.stop()
 
 if not (min_h <= h_value <= max_h):
@@ -151,40 +151,61 @@ for fi_val in fi_values_available:
     group = fi_aggregated_groups[fi_val]
     if len(group) == 1:
         ax.plot([x_min, x_max], [group['y'].iloc[0]]*2, 'b-', linewidth=0.5, alpha=0.3)
+        # Добавяне на етикет φ
+        ax.text(x_max, group['y'].iloc[0], f'φ={fi_val}', color='blue', 
+               va='center', ha='left', fontsize=9, alpha=0.7)
     else:
         x_smooth = np.linspace(group['x'].min(), group['x'].max(), 100)
-        ax.plot(x_smooth, fi_interpolators[fi_val](x_smooth), 'b-', linewidth=0.5, alpha=0.3)
+        y_smooth = fi_interpolators[fi_val](x_smooth)
+        ax.plot(x_smooth, y_smooth, 'b-', linewidth=0.5, alpha=0.3)
+        # Добавяне на етикет φ в края на линията
+        ax.text(x_smooth[-1], y_smooth[-1], f'φ={fi_val}', color='blue',
+               va='center', ha='left', fontsize=9, alpha=0.7)
 
 for h_val in h_values_available:
     x_pos = h_to_x[h_val]
     y_min_h = H_data[H_data['H'] == h_val]['y'].min()
     y_max_h = H_data[H_data['H'] == h_val]['y'].max()
     ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=0.5, alpha=0.3)
+    # Добавяне на етикет H
+    ax.text(x_pos, y_max_h + 0.0005, f'H={h_val}', color='red',
+           va='bottom', ha='center', fontsize=9, alpha=0.7)
 
 # Рисуване на най-близките изолинии (удебелени)
 for fi_val in [closest_fi_lower, closest_fi_upper]:
     if fi_val is not None:
         group = fi_aggregated_groups[fi_val]
         if len(group) == 1:
-            ax.plot([x_min, x_max], [group['y'].iloc[0]]*2, 'b-', linewidth=2, alpha=0.7,
-                   label=f'Fi={fi_val}' if fi_val in [closest_fi_lower, closest_fi_upper] else "")
+            y_val = group['y'].iloc[0]
+            ax.plot([x_min, x_max], [y_val]*2, 'b-', linewidth=2, alpha=0.7)
+            # Етикет за удебелена линия
+            ax.text(x_max, y_val, f'φ={fi_val}', color='blue',
+                   va='center', ha='left', fontsize=10, weight='bold')
         else:
             x_smooth = np.linspace(group['x'].min(), group['x'].max(), 100)
-            ax.plot(x_smooth, fi_interpolators[fi_val](x_smooth), 'b-', linewidth=2, alpha=0.7,
-                   label=f'Fi={fi_val}' if fi_val in [closest_fi_lower, closest_fi_upper] else "")
+            y_smooth = fi_interpolators[fi_val](x_smooth)
+            ax.plot(x_smooth, y_smooth, 'b-', linewidth=2, alpha=0.7)
+            # Етикет за удебелена линия
+            ax.text(x_smooth[-1], y_smooth[-1], f'φ={fi_val}', color='blue',
+                   va='center', ha='left', fontsize=10, weight='bold')
 
 for h_val in [closest_h_lower, closest_h_upper, h_value]:
     if h_val is not None and h_val in h_to_x:
         x_pos = h_to_x[h_val]
         y_min_h = H_data[H_data['H'] == h_val]['y'].min()
         y_max_h = H_data[H_data['H'] == h_val]['y'].max()
-        ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=2, alpha=0.7,
-               label=f'H={h_val}' if h_val in [closest_h_lower, closest_h_upper, h_value] else "")
+        ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=2, alpha=0.7)
+        # Етикет за удебелена линия H
+        ax.text(x_pos, y_max_h + 0.0005, f'H={h_val}', color='red',
+               va='bottom', ha='center', fontsize=10, weight='bold')
 
 # Маркиране на пресечната точка
-ax.plot([x_h], [y_tau], 'ro', markersize=8, label=f'τb = {y_tau:.4f}')
+ax.plot([x_h], [y_tau], 'ko', markersize=8, label=f'τb = {y_tau:.4f}')
+# Добавяне на етикет τb
+ax.text(x_h, y_tau + 0.0005, f'τb = {y_tau:.4f}', color='black',
+       va='bottom', ha='center', fontsize=10, weight='bold')
 
-# Настройки на графиката - заместваме x ticks със стойностите на H
+# Настройки на графиката
 ax.set_xlim(x_min, x_max)
 ax.set_ylim(y_min, y_max)
 
@@ -196,12 +217,12 @@ ax.set_xticklabels([f"{h:.1f}" for h in h_ticks])
 
 ax.set_xlabel('H', fontsize=12)
 ax.set_ylabel('y', fontsize=12)
-ax.set_title(f'Номограма Fi-H (Fi={fi_value}, H={h_value})', fontsize=14)
+ax.set_title(f'Номограма φ-H (φ={fi_value}, H={h_value})', fontsize=14)
 ax.grid(True, linestyle='--', alpha=0.5)
 ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
 # Показване на резултата
-st.success(f"Изчислена стойност на τb: `{y_tau:.6f}`")
+st.success(f"Изчислена стойност на напрежението на срязване: τb = `{y_tau:.6f}`")
 st.pyplot(fig)
 
 # Информация за интерполацията
@@ -209,19 +230,19 @@ st.divider()
 st.subheader('Информация за интерполацията')
 
 if fi_value in fi_values_available:
-    st.write(f"- Fi={fi_value}: Точна стойност (съвпада с изолиния)")
+    st.write(f"- φ={fi_value}: Точна стойност (съвпада с изолиния)")
 else:
-    st.write(f"- Fi={fi_value}: Интерполирана между {closest_fi_lower} и {closest_fi_upper}")
+    st.write(f"- φ={fi_value}: Интерполирана между φ={closest_fi_lower} и φ={closest_fi_upper}")
 
 if h_value in h_values_available:
     st.write(f"- H={h_value}: Точна стойност (съвпада с изолиния)")
 else:
-    st.write(f"- H={h_value}: Интерполирана между {closest_h_lower} и {closest_h_upper}")
+    st.write(f"- H={h_value}: Интерполирана между H={closest_h_lower} и H={closest_h_upper}")
 
 # Допълнителна информация
 st.divider()
 st.subheader('Технически параметри')
-st.write(f"Обхват на Fi: {min_fi} до {max_fi}")
+st.write(f"Обхват на φ: {min_fi} до {max_fi}")
 st.write(f"Обхват на H: {min_h} до {max_h}")
-st.write(f"Брой Fi изолинии: {len(fi_values_available)}")
+st.write(f"Брой φ изолинии: {len(fi_values_available)}")
 st.write(f"Брой H изолинии: {len(h_values_available)}")
