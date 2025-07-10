@@ -191,9 +191,6 @@ for h_val in [closest_h_lower, closest_h_upper, h_value]:
        
 # Маркиране на пресечната точка
 ax.plot([x_h], [y_tau], 'ko', markersize=8, label=f'τb = {y_tau:.4f}')
-# Добавяне на етикет τb
-ax.text(x_h, y_tau + 0.0005, f'τb = {y_tau:.4f}', color='black',
-       va='bottom', ha='center', fontsize=10, weight='bold')
 
 # Настройки на графиката
 ax.set_xlim(x_min, x_max)
