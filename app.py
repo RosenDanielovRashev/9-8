@@ -228,8 +228,4 @@ else:
 
 # Допълнителна информация
 st.divider()
-st.subheader('Технически параметри')
-st.write(f"Обхват на φ: {min_fi} до {max_fi}")
-st.write(f"Обхват на H: {min_h} до {max_h}")
-st.write(f"Брой φ изолинии: {len(fi_values_available)}")
-st.write(f"Брой H изолинии: {len(h_values_available)}")
+
