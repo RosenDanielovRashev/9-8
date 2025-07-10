@@ -78,7 +78,7 @@ def find_closest_values(value, available_values):
 
 # Streamlit UI
 st.title('Номограма за активно напрежение на срязване τb')
-st.subheader('BG Pavement Design Guide (2002) - Фиг.9.8')
+
 
 # Определяне на обхватите
 min_fi = float(min(fi_values_available))
