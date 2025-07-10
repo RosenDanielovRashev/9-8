@@ -7,21 +7,19 @@ from scipy.interpolate import interp1d
 # Зареждане на данните
 @st.cache_data
 def load_data():
-    Fi_data = pd.read_csv('Fi.csv')
-    Fi_data.columns = ['y', 'x', 'Fi']  # Осигуряваме съвместимост на колоните
-    H_data = pd.read_csv('H.csv')
+    Fi_data = pd.read_csv('data/Fi.csv')
+    Fi_data.columns = ['y', 'x', 'Fi']
+    H_data = pd.read_csv('data/H.csv')
     
-    # Конвертиране към float за сигурност
     Fi_data['Fi'] = Fi_data['Fi'].astype(float)
     H_data['H'] = H_data['H'].astype(float)
     
-    # Премахване на дублиращи се записи
     Fi_data = Fi_data.drop_duplicates(subset=['x', 'y', 'Fi'])
     return Fi_data, H_data
 
 Fi_data, H_data = load_data()
 
-# Подготовка на данните за Fi
+# Подготовка на данните
 fi_aggregated_groups = {}
 fi_interpolators = {}
 fi_values_available = sorted(Fi_data['Fi'].unique())
@@ -40,15 +38,11 @@ for fi in fi_values_available:
     else:
         fi_interpolators[fi] = interp1d(x, y, kind='linear', bounds_error=False, fill_value="extrapolate")
 
-# Подготовка на данните за H
-h_values_available = sorted(H_data['H'].unique())
-h_to_x = {}
-h_to_y_range = {}
-
-for h in h_values_available:
-    h_group = H_data[H_data['H'] == h]
-    h_to_x[h] = h_group['x'].mean()
-    h_to_y_range[h] = (h_group['y'].min(), h_group['y'].max())
+# Създаване на mapping между x и H
+unique_h = H_data[['x', 'H']].drop_duplicates()
+x_to_h = dict(zip(unique_h['x'], unique_h['H']))
+h_to_x = dict(zip(unique_h['H'], unique_h['x']))
+h_values_available = sorted(h_to_x.keys())
 
 # Функции за интерполация
 def interpolate_fi(fi_value):
@@ -73,24 +67,6 @@ def interpolate_fi(fi_value):
         return y_lower + ratio * (y_upper - y_lower)
     
     return interpolated_func
-
-def interpolate_h(h_value):
-    h_value = float(h_value)
-    if h_value in h_values_available:
-        return h_to_x[h_value]
-    
-    lower_h = max([h for h in h_values_available if h <= h_value], default=None)
-    upper_h = min([h for h in h_values_available if h >= h_value], default=None)
-    
-    if lower_h is None and upper_h is None:
-        return None
-    elif lower_h is None:
-        return h_to_x[upper_h]
-    elif upper_h is None:
-        return h_to_x[lower_h]
-    
-    ratio = (h_value - lower_h) / (upper_h - lower_h)
-    return h_to_x[lower_h] + ratio * (h_to_x[upper_h] - h_to_x[lower_h])
 
 def find_closest_values(value, available_values):
     value = float(value)
@@ -149,7 +125,7 @@ if not (min_h <= h_value <= max_h):
 
 # Изчисляване на τb
 f_fi = interpolate_fi(fi_value)
-x_h = interpolate_h(h_value)
+x_h = h_to_x[h_value] if h_value in h_to_x else None
 
 if f_fi is None or x_h is None:
     st.error("Грешка при интерполация. Моля, проверете входните стойности.")
@@ -165,8 +141,8 @@ closest_h_lower, closest_h_upper = find_closest_values(h_value, h_values_availab
 fig, ax = plt.subplots(figsize=(12, 9))
 
 # Намиране на граници
-x_min = min(Fi_data['x'].min(), H_data['x'].min()) - 0.001
-x_max = max(Fi_data['x'].max(), H_data['x'].max()) + 0.001
+x_min = min(Fi_data['x'].min(), min(h_to_x.values()))
+x_max = max(Fi_data['x'].max(), max(h_to_x.values()))
 y_min = min(Fi_data['y'].min(), H_data['y'].min()) - 0.001
 y_max = max(Fi_data['y'].max(), H_data['y'].max()) + 0.001
 
@@ -180,8 +156,10 @@ for fi_val in fi_values_available:
         ax.plot(x_smooth, fi_interpolators[fi_val](x_smooth), 'b-', linewidth=0.5, alpha=0.3)
 
 for h_val in h_values_available:
-    y_min_h, y_max_h = h_to_y_range[h_val]
-    ax.plot([h_to_x[h_val]]*2, [y_min_h, y_max_h], 'r-', linewidth=0.5, alpha=0.3)
+    x_pos = h_to_x[h_val]
+    y_min_h = H_data[H_data['H'] == h_val]['y'].min()
+    y_max_h = H_data[H_data['H'] == h_val]['y'].max()
+    ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=0.5, alpha=0.3)
 
 # Рисуване на най-близките изолинии (удебелени)
 for fi_val in [closest_fi_lower, closest_fi_upper]:
@@ -195,19 +173,28 @@ for fi_val in [closest_fi_lower, closest_fi_upper]:
             ax.plot(x_smooth, fi_interpolators[fi_val](x_smooth), 'b-', linewidth=2, alpha=0.7,
                    label=f'Fi={fi_val}' if fi_val in [closest_fi_lower, closest_fi_upper] else "")
 
-for h_val in [closest_h_lower, closest_h_upper]:
-    if h_val is not None:
-        y_min_h, y_max_h = h_to_y_range[h_val]
-        ax.plot([h_to_x[h_val]]*2, [y_min_h, y_max_h], 'r-', linewidth=2, alpha=0.7,
-               label=f'H={h_val}' if h_val in [closest_h_lower, closest_h_upper] else "")
+for h_val in [closest_h_lower, closest_h_upper, h_value]:
+    if h_val is not None and h_val in h_to_x:
+        x_pos = h_to_x[h_val]
+        y_min_h = H_data[H_data['H'] == h_val]['y'].min()
+        y_max_h = H_data[H_data['H'] == h_val]['y'].max()
+        ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=2, alpha=0.7,
+               label=f'H={h_val}' if h_val in [closest_h_lower, closest_h_upper, h_value] else "")
 
 # Маркиране на пресечната точка
 ax.plot([x_h], [y_tau], 'ro', markersize=8, label=f'τb = {y_tau:.4f}')
 
-# Настройки на графиката
+# Настройки на графиката - заместваме x ticks със стойностите на H
 ax.set_xlim(x_min, x_max)
 ax.set_ylim(y_min, y_max)
-ax.set_xlabel('x', fontsize=12)
+
+# Създаване на H ticks
+h_ticks = sorted(h_values_available)
+x_positions = [h_to_x[h] for h in h_ticks]
+ax.set_xticks(x_positions)
+ax.set_xticklabels([f"{h:.1f}" for h in h_ticks])
+
+ax.set_xlabel('H', fontsize=12)
 ax.set_ylabel('y', fontsize=12)
 ax.set_title(f'Номограма Fi-H (Fi={fi_value}, H={h_value})', fontsize=14)
 ax.grid(True, linestyle='--', alpha=0.5)
