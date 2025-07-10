@@ -175,16 +175,12 @@ for fi_val in [closest_fi_lower, closest_fi_upper]:
         if len(group) == 1:
             y_val = group['y'].iloc[0]
             ax.plot([x_min, x_max], [y_val]*2, 'b-', linewidth=2, alpha=0.7)
-            # Етикет за удебелена линия
-            ax.text(x_max, y_val, f'φ={fi_val}', color='blue',
-                   va='center', ha='left', fontsize=10, weight='bold')
+            
         else:
             x_smooth = np.linspace(group['x'].min(), group['x'].max(), 100)
             y_smooth = fi_interpolators[fi_val](x_smooth)
             ax.plot(x_smooth, y_smooth, 'b-', linewidth=2, alpha=0.7)
-            # Етикет за удебелена линия
-            ax.text(x_smooth[-1], y_smooth[-1], f'φ={fi_val}', color='blue',
-                   va='center', ha='left', fontsize=10, weight='bold')
+           
 
 for h_val in [closest_h_lower, closest_h_upper, h_value]:
     if h_val is not None and h_val in h_to_x:
