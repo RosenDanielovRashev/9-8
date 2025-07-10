@@ -192,10 +192,7 @@ for h_val in [closest_h_lower, closest_h_upper, h_value]:
         y_min_h = H_data[H_data['H'] == h_val]['y'].min()
         y_max_h = H_data[H_data['H'] == h_val]['y'].max()
         ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=2, alpha=0.7)
-        # Етикет за удебелена линия H
-        ax.text(x_pos, y_max_h + 0.0005, f'H={h_val}', color='red',
-               va='bottom', ha='center', fontsize=10, weight='bold')
-
+       
 # Маркиране на пресечната точка
 ax.plot([x_h], [y_tau], 'ko', markersize=8, label=f'τb = {y_tau:.4f}')
 # Добавяне на етикет τb
