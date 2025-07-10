@@ -167,10 +167,7 @@ for h_val in h_values_available:
     y_min_h = H_data[H_data['H'] == h_val]['y'].min()
     y_max_h = H_data[H_data['H'] == h_val]['y'].max()
     ax.plot([x_pos]*2, [y_min_h, y_max_h], 'r-', linewidth=0.5, alpha=0.3)
-    # Добавяне на етикет H
-    ax.text(x_pos, y_max_h + 0.0005, f'H={h_val}', color='red',
-           va='bottom', ha='center', fontsize=9, alpha=0.7)
-
+   
 # Рисуване на най-близките изолинии (удебелени)
 for fi_val in [closest_fi_lower, closest_fi_upper]:
     if fi_val is not None:
